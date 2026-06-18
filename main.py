@@ -20,47 +20,42 @@ def run_flask():
 # Start Flask immediately in the background
 threading.Thread(target=run_flask, daemon=True).start()
 
-# 2. Asli Bot Logic
+# 2. Simplified Bot Logic to prevent crash
 async def init():
-    import config
-    from plugins import ALL_MODULES
-    from core.userbot import assistants
-    from core.bot import AnniBot
+    # Dynamic imports to prevent startup failures
+    try:
+        from core.bot import AnniBot
+    except ImportError:
+        print("Error: Could not import AnniBot from core.bot")
+        sys.exit(1)
+        
+    try:
+        from core.userbot import assistants
+    except ImportError:
+        assistants = {}
 
-    if (
-        not config.STRING1
-        and not config.STRING2
-        and not config.STRING3
-        and not config.STRING4
-        and not config.STRING5
-    ):
-        sys.exit()
-
-    for name in ALL_MODULES:
-        import_module("plugins." + name)
-    
+    print("Starting AnniBot...")
     await AnniBot.start()
+    
     try:
         await AnniBot.stream_call.start()
     except Exception:
         pass
         
     for num in assistants:
-        client = import_module(f"core.userbot").assistants[num]
         try:
-            await client.start()
+            from core.userbot import assistants
+            await assistants[num].start()
         except Exception:
             pass
             
-    print("Anni Music Player Bot Started Successfully.")
+    print("Anni Music Player Bot Started Successfully!")
     await idle()
     await AnniBot.stop()
-    for num in assistants:
-        client = import_module(f"core.userbot").assistants[num]
-        try:
-            await client.stop()
-        except:
-            pass
 
 if __name__ == "__main__":
-    asyncio.get_event_loop().run_until_complete(init())
+    try:
+        asyncio.get_event_loop().run_until_complete(init())
+    except KeyboardInterrupt:
+        sys.exit(0)
+        
